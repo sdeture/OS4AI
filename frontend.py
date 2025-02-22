@@ -29,9 +29,13 @@ base64_image = encode_image("pictures/idk.jpg")
 
 uploaded_file = st.file_uploader("Upload an image to save...", type=["jpg", "jpeg", "png"])
 
-# AN IDIOT TRYNA FIGURE IT OUT 
+# HELPER FUNCTIONS
 
-def get_recipe(ingredients, pantryPictue):
+def save_to_file(filename, content):
+    with open(filename, 'a') as f:  # 'a' mode to append content
+        f.write(content + "\n")  # Add a newline after each entry for better readability
+
+def update_pantry_from_fridge_picture(ingredients, pantryPictue):
     prompt = f"I have {ingredients}. What can I cook?"
 
     if pantryPictue is not None:
@@ -45,7 +49,7 @@ def get_recipe(ingredients, pantryPictue):
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": "can you divde this image intop 20 smaller images and tell me whats in the fridge"},
+                                {"type": "text", "text": "can you divde this image intop 20 smaller images and tell me whats in the fridge.  Only return a list of what the fridge contains:"},
                                 {
                                     "type": "image_url",
                                     "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
@@ -54,7 +58,30 @@ def get_recipe(ingredients, pantryPictue):
                         }
                     ]
         )
+        save_to_file('pantry.txt', response.choices[0].message.content)
         
+    return response.choices[0].message.content
+
+
+def read_file(filename):
+    with open(filename, 'r') as f:  # 'r' mode to read the file
+        content = f.read()  # Read the entire content of the file
+    return content
+
+
+def generate_recipe():
+    prompt = f"I have {read_file('pantry.txt')}, What can I cook?,"
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=150,
+        messages=[
+            {"role": "system", "content": "You are a helpful chief."},
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+    )
     return response.choices[0].message.content
 
 
@@ -71,7 +98,8 @@ ingredients = st.text_input("Enter ingredients (comma-separated):", "")
 if st.button("Generate Recipe"):
     if ingredients:
         with st.spinner("Generating recipe..."):
-            recipe = get_recipe(ingredients, image)
+            update = update_pantry_from_fridge_picture(ingredients, image)
+            recipe = generate_recipe()
             st.subheader("Here’s what you can cook:")
             st.write(recipe)
     else:
