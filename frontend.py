@@ -9,6 +9,8 @@ from PIL import Image
 from google.cloud import vision
 import io
 import base64
+from search_vector_store import search_recipes
+
 
 
 # OPEN AI SETUP
@@ -100,7 +102,11 @@ if st.button("Generate Recipe"):
         with st.spinner("Generating recipe..."):
             update = update_pantry_from_fridge_picture(ingredients, image)
             recipe = generate_recipe()
-            st.subheader("Here’s what you can cook:")
+            st.subheader("Here’s what you can cook according to ChatGPT:")
             st.write(recipe)
+
+            recipe_from_vector = search_recipes(ingredients)
+            st.subheader("Here’s what you can cook, according to the vector store:")
+            st.write(recipe_from_vector)
     else:
         st.warning("Please enter some ingredients first!")
